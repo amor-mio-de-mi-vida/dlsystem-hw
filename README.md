@@ -1,14 +1,4 @@
-# My homework and source code of DLSystem
+# Lecture8
 
-check the branch for each homework
-
-
-- [ ] hw0
-
-- [ ] hw1
-
-- [ ] hw2
-
-- [ ] hw3
-
-- [ ] hw4
+This repo contains the infrastructure code needed for lecture8.
+It can be safely replaced by hw2 repo eventually.
