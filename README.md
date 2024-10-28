@@ -3,7 +3,7 @@
 check the branch for each homework
 
 
-- [ ] hw0
+- [x] hw0 (softmax cpp need debug)
 
 - [ ] hw1
 
