@@ -5,6 +5,18 @@
 
 namespace py = pybind11;
 
+void mat_mul(const float *X, const float* Y, float* Z, int m, int n, int k) {
+    // X: m x n, Y: n x k, Z: m x k
+    for  (int i = 0; i < m; i++) {
+        for (int j = 0; j < k; j++) {
+            Z[i * k + j] = 0;
+            for (int s = 0; s < n; s++) {
+                Z[i * k + j] += X[i * n + s] * Y[s * k + j];
+            }
+        }
+    }
+}
+
 
 void softmax_regression_epoch_cpp(const float *X, const unsigned char *y,
 								  float *theta, size_t m, size_t n, size_t k,
@@ -37,76 +49,28 @@ void softmax_regression_epoch_cpp(const float *X, const unsigned char *y,
     // 注意数组越界
 
     int iterations = (m + batch - 1) / batch;
-    float* x = (float*)malloc(sizeof(float) * batch * n);
-    char* yy = (char*)malloc(sizeof(float) * batch);
-
-    float* Z = (float*)malloc(sizeof(float) * batch * k);
-
-    float* Z_ = (float*)malloc(sizeof(float) * batch);
-
-    float* grad = (float*)malloc(sizeof(float) * k * n);
-
-    for (int i = 0; i < iterations; i++) {
-
-        // copy X (batch * input_dimension) (batch * n)
-        memcpy(x, X + i * batch, sizeof(float) * batch * n);
-        // copy y (batch)
-        memcpy(yy, y + i * batch, sizeof(char) * batch);
-
-        memset(Z, 0, sizeof(float) * batch * k);
-        memset(Z_, 0, sizeof(float) * batch);
-        memset(grad, 0, sizeof(float) * k * n);
-
-        // matmul x @ theta
-        for (size_t i = 0; i < batch; i++) {
-            for (size_t j = 0; j < k; j++) {
-                for (size_t l = 0; l < n; k++) {
-                    Z[i * batch + j] += x[i * batch + l] * theta[l * n + j];
-                }
-            }
+    for (int iter = 0; iter < iterations; iter++) {
+        const float* x = &X[iter * batch * n];
+        float *Z = new float[batch * k];
+        mat_mul(x, theta, Z, batch, n, k);
+        for (int i = 0; i < batch * k; i++) Z[i] = exp(Z[i]);
+        for (int i = 0; i < batch; i++) {
+            float sum = 0;
+            for (int j = 0; j < k; j++) sum += Z[i * k + j];
+            for (int j = 0; j < k; j++) Z[i * k + j] /= sum;
         }
-
-        for (size_t i = 0; i < batch; i++) {
-            for (size_t j = 0; j < k; j++) {
-                Z[i * batch + j] = exp(Z[i * batch + j]);
-                Z_[i] += Z[i * batch + j];
-            }
-        }
-
-        for (size_t i = 0; i < batch; i++) {
-            for (size_t j = 0; j < k; j++) {
-                Z[i * batch + j] /= Z_[i];
-            }
-        }
-
-        for (size_t i = 0; i < batch; i++) {
-            for (size_t j = 0; j < k; j++) {
-                if (j == int(yy[i] + '0')) {
-                    Z[i * batch + j] -= 1;
-                }
-            }
-        }
-
-        for (size_t i = 0; i < n; i++) {
-            for (size_t j = 0; j < k; j++) {
-                for (size_t l = 0; l < batch; l++) {
-                    grad[i * n + j] += x[l * batch + i] * Z[l * batch + j];
-                }
-            }
-        }
-
-        for (size_t i = 0; i < n; i++) {
-            for (size_t j = 0; j < k; j++) {
-                theta[i * n + j] -= lr * grad[i * n + j] / batch;
-            }
-        }
+        for (int i = 0; i < batch; i++) Z[i * k + y[iter * batch + i]] -= 1;
+        float *x_T = new float[n * batch];
+        float *grad = new float[n * k];
+        for (int i = 0; i < batch; i++)
+            for (int j = 0; j < n; j++)
+                x_T[j * batch + i] = x[i * n + j];
+        mat_mul(x_T, Z, grad, n, batch, k);
+        for (int i = 0; i < n * k; i++) theta[i] -= lr / batch * grad[i];
+        delete[] Z;
+        delete[] x_T;
+        delete[] grad;
     }
-
-    free(x);
-    free(yy);
-    free(Z);
-    free(Z_);
-    free(grad);
     /// END YOUR CODE
 }
 
