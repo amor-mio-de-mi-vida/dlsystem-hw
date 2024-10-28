@@ -20,7 +20,7 @@ def add(x, y):
         Sum of x + y
     """
     ### BEGIN YOUR CODE
-    pass
+    return x + y
     ### END YOUR CODE
 
 
@@ -48,7 +48,44 @@ def parse_mnist(image_filename, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR CODE
-    pass
+    if '.gz' in image_filename:
+        try:
+            with gzip.open("../" + image_filename, 'rb') as f:
+                data_image = f.read()
+        except Exception as e:
+            print(image_filename,e)
+
+    if '.gz' in label_filename:
+        try:
+            with gzip.open("../" + label_filename, 'rb') as f:
+                data_label = f.read()
+        except Exception as e:
+            print(image_filename,e)
+
+    label_magic_number = struct.unpack(">I", data_label[0:4])[0]
+    label_number = struct.unpack(">I", data_label[4:8])[0]
+    image_magic_number = struct.unpack(">I", data_image[0:4])[0]
+    image_number = struct.unpack(">I", data_image[4:8])[0]
+    image_row_number = struct.unpack(">I", data_image[8:12])[0]
+    image_column_number = struct.unpack(">I", data_image[12:16])[0]
+
+    print("label_magic_number is " + str(label_magic_number))
+    print("label_number is " + str(label_number))
+
+    print("image_magic_number is " + str(image_magic_number))
+    print("image_number is " + str(image_number))
+    print("image_row_number is " + str(image_row_number))
+    print("image_column_number is " + str(image_column_number))
+
+    X = np.frombuffer(data_image[16:], dtype=np.uint8).reshape((image_number, image_row_number*image_column_number))
+
+    max_val = np.max(X)
+    min_val = np.min(X)
+    X = ((X - min_val) / (max_val - min_val)).astype(np.float32)
+
+    y = np.frombuffer(data_label[8:], dtype=np.uint8)
+
+    return X, y
     ### END YOUR CODE
 
 
@@ -68,7 +105,9 @@ def softmax_loss(Z, y):
         Average softmax loss over the sample.
     """
     ### BEGIN YOUR CODE
-    pass
+    batch_size, num_classes = Z.shape
+    loss = np.log(np.exp(Z).sum(axis=1)).sum() - Z[np.arange(batch_size), y].sum()
+    return loss / batch_size
     ### END YOUR CODE
 
 
@@ -91,7 +130,17 @@ def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    iterations = (y.size + batch - 1) // batch
+    for i in range(iterations):
+        x = X[i * batch: (i + 1) * batch, :]
+        yy = y[i * batch: (i + 1) * batch]
+        Z = np.exp(x @ theta) / np.sum(np.exp(x @ theta), axis=1, keepdims=True)
+        # Z = Z / np.sum(Z, axis=1, keepdims=True)
+        Y = np.zeros((batch, y.max() + 1))
+        Y[np.arange(batch), yy] = 1
+        grad = x.T @ (Z - Y) / batch
+        assert (grad.shape == theta.shape)
+        theta -= lr * grad
     ### END YOUR CODE
 
 
@@ -118,7 +167,24 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    iterations = (y.size + batch - 1) // batch
+    for i in range(iterations):
+      x = X[i * batch: (i + 1) * batch, :]
+      yy = y[i * batch: (i + 1) * batch]
+      L1 = x @ W1
+      L2 = np.maximum(0, L1) @ W2
+
+      S = np.exp(L2)
+      S = S / np.sum(S, axis=1, keepdims=True)
+      Iy = np.zeros((batch, y.max() + 1))
+      Iy[np.arange(batch), yy] = 1
+
+      grad2 = np.maximum(0, L1).T @ (S - Iy) / batch
+      grad1 = (x.T @ ((L1 > 0).astype(np.float32) * ((S - Iy) @ W2.T))) / batch
+      assert grad2.shape == W2.shape
+      assert grad1.shape == W1.shape
+      W2 -= lr * grad2
+      W1 -= lr * grad1
     ### END YOUR CODE
 
 
