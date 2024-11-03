@@ -1,11 +1,12 @@
 """Core data structures."""
-import needle
+import python.needle
 from .backend_numpy import Device, cpu, all_devices
-from typing import List, Optional, NamedTuple, Tuple, Union
+from typing import List, Optional, NamedTuple, Tuple, Union, Dict
 from collections import namedtuple
 import numpy
+import python.needle as needle
+from python.needle import init
 
-from needle import init
 
 # needle version
 LAZY_MODE = False
@@ -393,7 +394,7 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+
     ### END YOUR SOLUTION
 
 
